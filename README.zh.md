@@ -56,7 +56,7 @@ plugin_manager install_bundle target=/absolute/path/to/dsh-always-auto
 
 ## 实现要点
 
-- **Host 半** 在 `permissionPresets.pinInitialPermission` 的调用点上工作：只有真正全新的会话（权限投影里 `preset`、`sandbox`、`approval` 都为空且未 seed）才会被改成 `auto`；恢复、fork、子 agent 以及已有权限事件的会话都保持原值。
+- **Host 半** 在 `permissionPresets.pinInitialPermission` 的调用点上工作：只有真正全新的会话（权限投影里 `preset`、`sandbox`、`approval` 都为空且未 seed）才会被改成 `auto`；恢复、fork 以及已有权限事件的会话保持原值。全新子会话与普通新会话遵循同一默认值。
 - **Client 半** 通过 slot 注册接管：
   - `settings.general.item`（复用 `id: permission`，`priority: -1` 遮蔽原生行）；
   - `conversation.input.permission`（`priority: -1` 遮蔽原生单槽）；

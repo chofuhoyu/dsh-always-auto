@@ -11,7 +11,13 @@ window.__ModuleLoader__.load({
   id: 'dsh-always-auto',
   factory(require) {
     const React = require('react')
-    const { createPortal } = require('react-dom')
+    let createPortal = null
+    try {
+      const ReactDOM = require('react-dom')
+      if (ReactDOM !== null && typeof ReactDOM.createPortal === 'function') createPortal = ReactDOM.createPortal
+    } catch (error) {
+      console.warn('always-auto: react-dom is unavailable; overlays render inline', error)
+    }
     const h = React.createElement
 
     const NS = 'always-auto'
@@ -92,7 +98,7 @@ window.__ModuleLoader__.load({
 .dsh-aa-badge{flex:none;font-size:8px;font-weight:600;letter-spacing:.2px;line-height:10px;color:var(--dsw-alias-label-secondary)}
 .dsh-aa-check{flex:none;color:var(--dsw-alias-brand-primary);font-size:12px;line-height:16px}
 .dsh-aa-backdrop{position:fixed;inset:0;z-index:1300;display:flex;align-items:center;justify-content:center;padding:24px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 20%,transparent)}
-.dsh-aa-dialog{width:min(440px,100%);display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary)}
+.dsh-aa-dialog{width:min(440px,100%);outline:none;display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary)}
 .dsh-aa-dialogTitle{font-size:16px;font-weight:600;line-height:24px}
 .dsh-aa-dialogDesc{font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}
 .dsh-aa-ack{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:20px;color:var(--dsw-alias-label-primary);cursor:pointer}
@@ -155,6 +161,12 @@ window.__ModuleLoader__.load({
       return error instanceof Error ? error.message : String(error)
     }
 
+    /** Portal when react-dom is present; otherwise render in place. */
+    function portal(node) {
+      if (createPortal === null || typeof document === 'undefined') return node
+      return createPortal(node, document.body)
+    }
+
     function displayName(value) {
       if (value === undefined || value === null || value === '') return ''
       return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value)
@@ -198,6 +210,12 @@ window.__ModuleLoader__.load({
       const stop = ctx.remote.$on('permission-presets/catalog-changed', () => {
         void refresh()
       })
+      const generation = ctx.connection?.generation
+      const stopGeneration = typeof generation?.subscribe === 'function'
+        ? generation.subscribe(() => {
+          void refresh()
+        })
+        : undefined
       void refresh()
       return {
         store,
@@ -209,6 +227,7 @@ window.__ModuleLoader__.load({
         dispose() {
           disposed = true
           if (typeof stop === 'function') stop()
+          if (typeof stopGeneration === 'function') stopGeneration()
         },
       }
     }
@@ -293,7 +312,7 @@ window.__ModuleLoader__.load({
       const position = usePopoverPosition(open, anchorRef)
       useDismiss(open, menuRef, anchorRef, onClose)
       if (!open || position === null || typeof document === 'undefined') return null
-      return createPortal(h('div', {
+      return portal(h('div', {
         ref: menuRef,
         className: 'dsh-aa-menu',
         role: 'menu',
@@ -313,7 +332,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'dsh-aa-itemText' }, item.label),
           item.badge !== undefined ? h('span', { className: 'dsh-aa-badge' }, item.badge) : null),
         item.detail !== undefined ? h('span', { className: 'dsh-aa-itemDetail' }, item.detail) : null),
-      item.active ? h('span', { className: 'dsh-aa-check', 'aria-hidden': 'true' }, '✓') : null))), document.body)
+      item.active ? h('span', { className: 'dsh-aa-check', 'aria-hidden': 'true' }, '✓') : null))))
     }
 
     function Chevron() {
@@ -334,8 +353,12 @@ window.__ModuleLoader__.load({
     /** Copy of the host risk gate used only for Full access. */
     function RiskDialog({ open, title, description, acknowledge, cancel, confirm, onCancel, onConfirm }) {
       const [acknowledged, setAcknowledged] = React.useState(false)
+      const dialogRef = React.useRef(null)
       React.useEffect(() => {
         if (!open) setAcknowledged(false)
+      }, [open])
+      React.useEffect(() => {
+        if (open) dialogRef.current?.focus()
       }, [open])
       React.useEffect(() => {
         if (!open) return undefined
@@ -367,6 +390,8 @@ window.__ModuleLoader__.load({
           onClick: onConfirm,
         }, confirm))
       const dialog = h('div', {
+        ref: dialogRef,
+        tabIndex: -1,
         className: 'dsh-aa-dialog',
         role: 'dialog',
         'aria-modal': 'true',
@@ -376,12 +401,12 @@ window.__ModuleLoader__.load({
       h('div', { className: 'dsh-aa-dialogDesc' }, description),
       acknowledgeRow,
       actions)
-      return createPortal(h('div', {
+      return portal(h('div', {
         className: 'dsh-aa-backdrop',
         onMouseDown: (event) => {
           if (event.target === event.currentTarget) onCancel()
         },
-      }, dialog), document.body)
+      }, dialog))
     }
 
     function rowItems(options, currentValue, t, withDetail) {
@@ -685,6 +710,6 @@ window.__ModuleLoader__.load({
       }
     }
 
-    return { inject: ['commandUi', 'sessions', 'slots', 'locale', 'remote', 'remote.permissionPresets', 'configForms'], apply }
+    return { inject: ['commandUi', 'connection', 'sessions', 'slots', 'locale', 'remote', 'remote.permissionPresets', 'configForms'], apply }
   },
 })

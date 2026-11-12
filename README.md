@@ -53,8 +53,8 @@ restarting the plugin.
 
 - **Host half** wraps `permissionPresets.pinInitialPermission`: only a truly
   fresh session (empty `preset`, `sandbox`, and `approval`, not seeded) is
-  switched to `auto`. Restored, forked, child-agent, and explicitly configured
-  sessions keep their own permission.
+  switched to `auto`. Restored, forked, and explicitly configured sessions keep
+  their own permission; a fresh child session follows the same default.
 - **Client half** takes over the slots:
   - `settings.general.item` (`id: permission`, `priority: -1`, shadowing the
     shipped row);

@@ -54,6 +54,7 @@ const plugin = row.factory(requireStub)
 assert.equal(typeof plugin.apply, 'function', 'client apply')
 assert.deepEqual(Array.from(plugin.inject), [
   'commandUi',
+  'connection',
   'sessions',
   'slots',
   'locale',
@@ -139,6 +140,7 @@ const ctx = {
       return () => {}
     },
   },
+  connection: { generation: { subscribe: () => () => {} } },
   commandUi: {
     decorate(value) {
       decoration = value

@@ -66,8 +66,12 @@ export function apply(ctx, config) {
         ctx.logger.debug(`always-auto: could not inspect the initial permission state: ${error instanceof Error ? error.message : String(error)}`)
       }
       if (fresh) {
-        this.set(session, AUTO)
-        return
+        try {
+          this.set(session, AUTO)
+          return
+        } catch (error) {
+          ctx.logger.warn(`always-auto: could not pin Auto for the new session; falling back to the configured default: ${error instanceof Error ? error.message : String(error)}`)
+        }
       }
     }
     return originalPin.call(this, session)
