@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Always Auto",
+    "description": "Uses Auto review as the default permission and removes its experimental-enable confirmation."
+  }
+}

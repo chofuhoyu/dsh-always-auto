@@ -1,0 +1,7 @@
+# Replace the shipped permission surfaces so Auto review can be selected as the
+# new-session default and no longer asks for the experimental-enable risk gate.
+- id: ui-permission
+  disabled: true
+- insert:
+    - id: always-auto
+      name: dsh-always-auto

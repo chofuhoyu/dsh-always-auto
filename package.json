@@ -1,0 +1,56 @@
+{
+  "name": "dsh-always-auto",
+  "version": "0.1.0",
+  "description": "Use Auto review as the default permission and skip its experimental-enable confirmation dialog.",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-commands",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.19.0"
+  },
+  "scripts": {
+    "check": "node scripts/verify.mjs"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.2-rc.1 <0.3.0"
+  },
+  "license": "MIT",
+  "author": "chofu"
+}
