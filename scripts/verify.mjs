@@ -36,17 +36,29 @@ vm.runInNewContext(clientSource, sandbox, { filename: 'client.js' })
 assert.equal(row?.id, 'dsh-always-auto', 'client bundle id')
 assert.equal(typeof row.factory, 'function', 'client factory')
 
+const primitives = {
+  IconChevronDownOutlineRegular: Symbol('IconChevronDownOutlineRegular'),
+  Menu: Symbol('Menu'),
+  PermissionIconAutoReviewRegular: Symbol('PermissionIconAutoReviewRegular'),
+  PermissionIconFullAccessRegular: Symbol('PermissionIconFullAccessRegular'),
+  PermissionIconReadOnlyRegular: Symbol('PermissionIconReadOnlyRegular'),
+  PermissionIconWorkspaceWriteRegular: Symbol('PermissionIconWorkspaceWriteRegular'),
+  RiskConfirmation: Symbol('RiskConfirmation'),
+}
 const React = {
-  createElement: () => null,
+  createElement: (type, props, ...children) => ({ type, props: props ?? {}, children }),
   Fragment: Symbol('Fragment'),
-  useState: () => [undefined, () => {}],
+  useState: (initial) => [initial, () => {}],
   useCallback: (fn) => fn,
   useEffect: () => {},
-  useRef: () => ({ current: null }),
+  useRef: (initial) => ({ current: initial }),
   useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
 }
+const required = new Set()
 const requireStub = (id) => {
+  required.add(id)
   if (id === 'react') return React
+  if (id === '@deepseek-ai/dsh-client-ui-primitives') return primitives
   if (id === 'react-dom') return { createPortal: () => null }
   throw new Error(`unexpected client require: ${id}`)
 }
@@ -176,19 +188,74 @@ assert.equal(autoOption.confirmation, undefined, 'Auto has no confirmation gate'
 assert.ok(fullAccess.confirmation, 'Full access keeps its confirmation gate')
 
 const t = (key, params) => (params?.name !== undefined ? `${key}:${params.name}` : key)
-assert.doesNotThrow(() => settings.component({
+
+/** Flatten an element tree produced by the fake createElement. */
+function elementsOf(node, out = []) {
+  if (Array.isArray(node)) {
+    for (const child of node) elementsOf(child, out)
+    return out
+  }
+  if (node === null || typeof node !== 'object') return out
+  if ('type' in node) out.push(node)
+  for (const value of Object.values(node.props ?? {})) elementsOf(value, out)
+  elementsOf(node.children, out)
+  return out
+}
+function findElement(node, type) {
+  return elementsOf(node).find((element) => element.type === type)
+}
+
+assert.ok(required.has('@deepseek-ai/dsh-client-ui-primitives'), 'client uses the shipped UI primitives')
+
+const catalogStore = {
+  get: () => ({ value: catalog, error: null, loading: false }),
+  subscribe: () => () => {},
+}
+const settingsTree = settings.component({
   t,
-  catalogStore: { get: () => ({ value: catalog, error: null, loading: false }), subscribe: () => () => {} },
+  catalogStore,
   permissionForm: forms.get('permission'),
   autoForm: forms.get('always-auto'),
-}), 'settings row renders')
-assert.doesNotThrow(() => picker.component({
+})
+const settingsMenu = findElement(settingsTree, primitives.Menu)
+assert.ok(settingsMenu, 'settings row uses the shipped Menu')
+assert.equal(settingsMenu.props.align, 'end', 'settings menu aligns to the selector end')
+assert.equal(settingsMenu.props.portal, true, 'settings menu portals like the shipped row')
+assert.equal(settingsMenu.props.selectedId, 'workspace-write')
+assert.deepEqual(settingsMenu.props.items.map((item) => item.id), catalog.options.map((option) => option.value))
+const settingsTrigger = findElement(settingsMenu.props.anchor, 'button')
+assert.ok(settingsTrigger, 'settings register a selector button')
+assert.equal(settingsTrigger.props.className, 'dsh-aa-selector')
+assert.ok(findElement(settingsTrigger, primitives.IconChevronDownOutlineRegular), 'settings selector carries the shipped chevron')
+const settingsRisk = findElement(settingsTree, primitives.RiskConfirmation)
+assert.ok(settingsRisk, 'settings row uses the shipped risk confirmation')
+assert.equal(settingsRisk.props.open, false)
+assert.equal(settingsRisk.props.description, 'settingsConfirmDescription')
+
+const pickerTree = picker.component({
   t,
   locked: false,
   select: async () => {},
-  catalogStore: { get: () => ({ value: catalog, error: null, loading: false }), subscribe: () => () => {} },
+  catalogStore,
   useProjection: () => ({ currentValue: 'workspace-write' }),
-}), 'composer control renders')
+})
+const pickerMenu = findElement(pickerTree, primitives.Menu)
+assert.ok(pickerMenu, 'composer control uses the shipped Menu')
+assert.equal(pickerMenu.props.side, 'top', 'composer menu opens above the trigger')
+assert.equal(pickerMenu.props.portal, true, 'composer menu portals')
+assert.equal(pickerMenu.props.selectedId, 'workspace-write')
+const pickerTrigger = findElement(pickerMenu.props.anchor, 'button')
+assert.ok(pickerTrigger, 'composer registers a trigger button')
+assert.equal(pickerTrigger.props.className, 'dsh-aa-trigger')
+assert.ok(findElement(pickerTrigger, primitives.PermissionIconWorkspaceWriteRegular), 'composer trigger shows the current preset glyph')
+assert.ok(findElement(pickerTrigger, primitives.IconChevronDownOutlineRegular), 'composer trigger shows the shipped chevron')
+const autoItem = pickerMenu.props.items.find((item) => item.id === 'auto')
+assert.ok(autoItem, 'composer menu offers Auto')
+assert.equal(autoItem.icon.type, primitives.PermissionIconAutoReviewRegular, 'Auto row uses the shipped Auto glyph')
+assert.ok(elementsOf(autoItem.label).some((element) => element.props?.className === 'dsh-aa-badge'), 'Auto row carries the EXP badge')
+const pickerRisk = findElement(pickerTree, primitives.RiskConfirmation)
+assert.ok(pickerRisk, 'composer uses the shipped risk confirmation')
+assert.equal(pickerRisk.props.open, false)
 
 console.log('client half: ok')
 

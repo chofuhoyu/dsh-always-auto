@@ -6,18 +6,24 @@
  *   - Auto review is offered as the new-session default in Settings > General.
  *   - Selecting Auto never opens the experimental-enable risk confirmation.
  *   - Full access keeps its risk confirmation.
+ *
+ * The two custom controls are built from the shipped UI primitives and copy the
+ * shipped permission surfaces' token set, so their colors, glyphs, spacing, and
+ * dropdown chrome match the native selectors exactly.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-always-auto',
   factory(require) {
     const React = require('react')
-    let createPortal = null
-    try {
-      const ReactDOM = require('react-dom')
-      if (ReactDOM !== null && typeof ReactDOM.createPortal === 'function') createPortal = ReactDOM.createPortal
-    } catch (error) {
-      console.warn('always-auto: react-dom is unavailable; overlays render inline', error)
-    }
+    const {
+      IconChevronDownOutlineRegular,
+      Menu,
+      PermissionIconAutoReviewRegular,
+      PermissionIconFullAccessRegular,
+      PermissionIconReadOnlyRegular,
+      PermissionIconWorkspaceWriteRegular,
+      RiskConfirmation,
+    } = require('@deepseek-ai/dsh-client-ui-primitives')
     const h = React.createElement
 
     const NS = 'always-auto'
@@ -28,6 +34,13 @@ window.__ModuleLoader__.load({
       'read-only': 'presetReadOnly',
       'workspace-write': 'presetWorkspaceWrite',
       'danger-full-access': 'presetFullAccess',
+    }
+
+    const PERMISSION_GLYPHS = {
+      'read-only': PermissionIconReadOnlyRegular,
+      'workspace-write': PermissionIconWorkspaceWriteRegular,
+      'danger-full-access': PermissionIconFullAccessRegular,
+      auto: PermissionIconAutoReviewRegular,
     }
 
     /** Simplified Chinese dictionary: the key-set source of truth. */
@@ -43,13 +56,13 @@ window.__ModuleLoader__.load({
       autoLabel: '自动审查',
       autoBadge: 'EXP',
       autoDescription: '无沙箱运行；每次原生工具调用和 PTC 内层调用前由同一模型进行实验性审查。',
-      autoUnavailable: '自动审查当前不可用',
       confirmTitle: '确认启用完全权限？',
       confirmDescription: '启用完全权限后，智能体将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任当前任务时使用。',
+      settingsConfirmDescription: '启用完全权限后，新会话将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任后续任务时使用。',
       confirmAcknowledge: '我已了解风险，并愿意继续',
       confirmCancel: '取消',
       confirmEnable: '启用完全权限',
-      mode: '权限模式，当前：{name}',
+      mode: '访问模式，当前：{name}',
       close: '关闭',
     }
     // Keep every dictionary on the same key set; untranslated locales fall back to English.
@@ -65,49 +78,45 @@ window.__ModuleLoader__.load({
       autoLabel: 'Auto review',
       autoBadge: 'EXP',
       autoDescription: 'Run without a sandbox after an experimental same-model review of every native tool call and PTC inner call.',
-      autoUnavailable: 'Auto review is unavailable right now',
       confirmTitle: 'Enable Full access?',
       confirmDescription: 'Full access reduces confirmation steps and lets the agent perform more actions directly, including sensitive operations, file changes, or external commands. Only use it when you trust the current task.',
+      settingsConfirmDescription: 'Full access lets new sessions reduce confirmation steps and perform more actions directly, including sensitive operations, file changes, or external commands. Only use it when you trust subsequent tasks.',
       confirmAcknowledge: 'I understand the risks and want to continue',
       confirmCancel: 'Cancel',
       confirmEnable: 'Enable Full access',
-      mode: 'Permission mode, current: {name}',
+      mode: 'Access mode, current: {name}',
       close: 'Close',
     }
 
+    /*
+     * These rules are the shipped PermissionRow.module.css and
+     * PermissionSelect.module.css declarations with local class names. Keeping
+     * the same tokens, sizes, and breakpoints is what makes the custom controls
+     * indistinguishable from the native selectors.
+     */
     const CSS = `
 .dsh-aa-row{display:flex;align-items:center;gap:8px;padding:16px 0;border-bottom:.5px solid var(--dsw-alias-border-l2)}
-.dsh-aa-rowText{display:flex;flex-direction:column;flex:1;gap:4px;min-width:0;padding-right:48px}
-.dsh-aa-title{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:400;line-height:22px}
-.dsh-aa-desc{color:var(--dsw-alias-label-secondary);font-size:12px;font-weight:400;line-height:18px}
-.dsh-aa-selector{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border:none;border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;line-height:22px;cursor:pointer;max-width:260px}
-.dsh-aa-selector:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2)}
-.dsh-aa-selector:disabled{color:var(--dsw-alias-label-secondary);cursor:default}
-.dsh-aa-trigger{display:inline-flex;align-items:center;gap:4px;height:28px;max-width:220px;padding:0 4px 0 8px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:500;line-height:20px;cursor:pointer}
-.dsh-aa-trigger:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2)}
-.dsh-aa-trigger:disabled{opacity:.6;cursor:default}
+.dsh-aa-rowText{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding-right:48px}
+@media (max-width:767px){html:not([data-windows-titlebar]):not([data-platform='darwin']) .dsh-aa-rowText{padding-right:16px}}
+.dsh-aa-title{font-size:14px;font-weight:400;line-height:22px;color:var(--dsw-alias-label-primary)}
+.dsh-aa-desc{font-size:12px;font-weight:400;line-height:18px;color:var(--dsw-alias-label-tertiary)}
+.dsh-aa-selector{display:inline-flex;align-items:center;gap:12px;height:36px;padding:0 14px;border:none;border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-module-platform);font:inherit;font-size:14px;line-height:22px;color:var(--dsw-alias-label-primary);cursor:pointer}
+@media (hover:hover){.dsh-aa-selector:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}}
+.dsh-aa-selector:disabled{cursor:default}
+.dsh-aa-rowChevron{flex:none}
+.dsh-aa-trigger{display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:220px;height:28px;padding:0 4px 0 8px;border:none;border-radius:var(--dsw-radius-sm);outline:none;background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;font-weight:500;cursor:pointer}
+@media (hover:hover){.dsh-aa-trigger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}}
+.dsh-aa-trigger:focus-visible{box-shadow:0 0 0 2px var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary))}
+.dsh-aa-trigger:disabled{color:var(--dsw-alias-label-dimmed);cursor:default}
+.dsh-aa-triggerIcon{display:inline-flex;flex:0 0 auto}
+.dsh-aa-triggerIcon svg{width:14px;height:14px}
 .dsh-aa-triggerLabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dsh-aa-chevron{flex:none;width:12px;height:12px;color:var(--dsw-alias-label-secondary)}
-.dsh-aa-menu{position:fixed;z-index:1200;min-width:232px;max-width:320px;padding:6px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-overlay);display:flex;flex-direction:column;gap:2px}
-.dsh-aa-item{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);text-align:left;font:inherit;cursor:pointer}
-.dsh-aa-item:hover{background:var(--dsw-alias-bg-layer-2)}
-.dsh-aa-itemMain{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.dsh-aa-itemLabel{display:flex;align-items:center;gap:4px;min-width:0}
-.dsh-aa-itemText{font-size:13px;line-height:20px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dsh-aa-itemDetail{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary)}
-.dsh-aa-badge{flex:none;font-size:8px;font-weight:600;letter-spacing:.2px;line-height:10px;color:var(--dsw-alias-label-secondary)}
-.dsh-aa-check{flex:none;color:var(--dsw-alias-brand-primary);font-size:12px;line-height:16px}
-.dsh-aa-backdrop{position:fixed;inset:0;z-index:1300;display:flex;align-items:center;justify-content:center;padding:24px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 20%,transparent)}
-.dsh-aa-dialog{width:min(440px,100%);outline:none;display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary)}
-.dsh-aa-dialogTitle{font-size:16px;font-weight:600;line-height:24px}
-.dsh-aa-dialogDesc{font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}
-.dsh-aa-ack{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:20px;color:var(--dsw-alias-label-primary);cursor:pointer}
-.dsh-aa-ack input{margin-top:3px;accent-color:var(--dsw-alias-brand-primary)}
-.dsh-aa-actions{display:flex;justify-content:flex-end;gap:8px}
-.dsh-aa-btn{height:32px;padding:0 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;cursor:pointer}
-.dsh-aa-btn:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2)}
-.dsh-aa-btn:disabled{opacity:.5;cursor:default}
-.dsh-aa-btnPrimary{border-color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base)}
+.dsh-aa-optionLabel{display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:100%}
+.dsh-aa-optionLabelText{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dsh-aa-badge{flex:none;color:var(--dsw-alias-label-tertiary);font-size:8px;line-height:10px;font-weight:500;letter-spacing:.2px}
+.dsh-aa-triggerChevron{display:inline-flex;flex:0 0 auto;color:var(--dsw-alias-label-caption);transition:transform 120ms ease}
+@container (max-width:460px){.dsh-aa-trigger:has(.dsh-aa-triggerIcon) .dsh-aa-triggerLabel{display:none}}
+.dsh-aa-triggerChevronOpen{transform:rotate(180deg)}
 `
 
     /** Install the plugin stylesheet once; the returned disposer removes it. */
@@ -161,10 +170,8 @@ window.__ModuleLoader__.load({
       return error instanceof Error ? error.message : String(error)
     }
 
-    /** Portal when react-dom is present; otherwise render in place. */
-    function portal(node) {
-      if (createPortal === null || typeof document === 'undefined') return node
-      return createPortal(node, document.body)
+    function cx(...values) {
+      return values.filter(Boolean).join(' ')
     }
 
     function displayName(value) {
@@ -180,6 +187,17 @@ window.__ModuleLoader__.load({
       const key = PRESET_LABEL_KEYS[value]
       if (key !== undefined) return t(key)
       return displayName(name ?? value)
+    }
+
+    /** The shipped permission glyph for a preset value; host-configured names get none. */
+    function permissionGlyph(value) {
+      const Icon = PERMISSION_GLYPHS[value]
+      return Icon === undefined ? undefined : h(Icon)
+    }
+
+    /** Auto owns its description; every other preset keeps the host-supplied copy. */
+    function optionDescription(option, t) {
+      return option.value === AUTO ? t('autoDescription') : option.description
     }
 
     /** Read the process-level permission catalog into a shared store. */
@@ -252,177 +270,27 @@ window.__ModuleLoader__.load({
       }
     }
 
-    /** Position a body-portal menu relative to its trigger. */
-    function usePopoverPosition(open, anchorRef) {
-      const [position, setPosition] = React.useState(null)
-      React.useEffect(() => {
-        if (!open) {
-          setPosition(null)
-          return undefined
-        }
-        const update = () => {
-          const node = anchorRef.current
-          if (node === null) return
-          const rect = node.getBoundingClientRect()
-          const margin = 8
-          const left = Math.max(margin, Math.min(rect.left, window.innerWidth - 328))
-          const below = window.innerHeight - rect.bottom
-          const openUp = below < 300 && rect.top > below
-          setPosition(openUp
-            ? { left, bottom: window.innerHeight - rect.top + 6 }
-            : { left, top: rect.bottom + 6 })
-        }
-        update()
-        window.addEventListener('resize', update)
-        window.addEventListener('scroll', update, true)
-        return () => {
-          window.removeEventListener('resize', update)
-          window.removeEventListener('scroll', update, true)
-        }
-      }, [open, anchorRef])
-      return position
-    }
-
-    /** Close a popover on outside mousedown or Escape. */
-    function useDismiss(open, menuRef, anchorRef, onClose) {
-      React.useEffect(() => {
-        if (!open) return undefined
-        const onPointerDown = (event) => {
-          if (menuRef.current?.contains(event.target) === true) return
-          if (anchorRef.current?.contains(event.target) === true) return
-          onClose()
-        }
-        const onKeyDown = (event) => {
-          if (event.key !== 'Escape') return
-          event.stopPropagation()
-          onClose()
-        }
-        document.addEventListener('mousedown', onPointerDown, true)
-        document.addEventListener('keydown', onKeyDown, true)
-        return () => {
-          document.removeEventListener('mousedown', onPointerDown, true)
-          document.removeEventListener('keydown', onKeyDown, true)
-        }
-      }, [open, menuRef, anchorRef, onClose])
-    }
-
-    /** Body-portal dropdown anchored to one trigger. */
-    function Dropdown({ open, anchorRef, items, onSelect, onClose }) {
-      const menuRef = React.useRef(null)
-      const position = usePopoverPosition(open, anchorRef)
-      useDismiss(open, menuRef, anchorRef, onClose)
-      if (!open || position === null || typeof document === 'undefined') return null
-      return portal(h('div', {
-        ref: menuRef,
-        className: 'dsh-aa-menu',
-        role: 'menu',
-        style: { left: position.left, ...(position.top !== undefined ? { top: position.top } : { bottom: position.bottom }), maxWidth: 320 },
-      }, items.map((item) => h('button', {
-        key: item.id,
-        type: 'button',
-        role: 'menuitemradio',
-        'aria-checked': item.active ? 'true' : 'false',
-        className: 'dsh-aa-item',
-        onClick: () => {
-          onSelect(item.id)
-        },
-      },
-      h('span', { className: 'dsh-aa-itemMain' },
-        h('span', { className: 'dsh-aa-itemLabel' },
-          h('span', { className: 'dsh-aa-itemText' }, item.label),
-          item.badge !== undefined ? h('span', { className: 'dsh-aa-badge' }, item.badge) : null),
-        item.detail !== undefined ? h('span', { className: 'dsh-aa-itemDetail' }, item.detail) : null),
-      item.active ? h('span', { className: 'dsh-aa-check', 'aria-hidden': 'true' }, '✓') : null))))
-    }
-
-    function Chevron() {
-      return h('svg', {
-        className: 'dsh-aa-chevron',
-        viewBox: '0 0 16 16',
-        fill: 'none',
-        'aria-hidden': 'true',
-      }, h('path', {
-        d: 'M4 6l4 4 4-4',
-        stroke: 'currentColor',
-        strokeWidth: 1.5,
-        strokeLinecap: 'round',
-        strokeLinejoin: 'round',
-      }))
-    }
-
-    /** Copy of the host risk gate used only for Full access. */
-    function RiskDialog({ open, title, description, acknowledge, cancel, confirm, onCancel, onConfirm }) {
-      const [acknowledged, setAcknowledged] = React.useState(false)
-      const dialogRef = React.useRef(null)
-      React.useEffect(() => {
-        if (!open) setAcknowledged(false)
-      }, [open])
-      React.useEffect(() => {
-        if (open) dialogRef.current?.focus()
-      }, [open])
-      React.useEffect(() => {
-        if (!open) return undefined
-        const onKeyDown = (event) => {
-          if (event.key === 'Escape') onCancel()
-        }
-        window.addEventListener('keydown', onKeyDown)
-        return () => {
-          window.removeEventListener('keydown', onKeyDown)
-        }
-      }, [open, onCancel])
-      if (!open || typeof document === 'undefined') return null
-
-      const acknowledgeRow = h('label', { className: 'dsh-aa-ack' },
-        h('input', {
-          type: 'checkbox',
-          checked: acknowledged,
-          onChange: (event) => {
-            setAcknowledged(event.target.checked)
-          },
-        }),
-        h('span', null, acknowledge))
-      const actions = h('div', { className: 'dsh-aa-actions' },
-        h('button', { type: 'button', className: 'dsh-aa-btn', onClick: onCancel }, cancel),
-        h('button', {
-          type: 'button',
-          className: 'dsh-aa-btn dsh-aa-btnPrimary',
-          disabled: !acknowledged,
-          onClick: onConfirm,
-        }, confirm))
-      const dialog = h('div', {
-        ref: dialogRef,
-        tabIndex: -1,
-        className: 'dsh-aa-dialog',
-        role: 'dialog',
-        'aria-modal': 'true',
-        'aria-label': title,
-      },
-      h('div', { className: 'dsh-aa-dialogTitle' }, title),
-      h('div', { className: 'dsh-aa-dialogDesc' }, description),
-      acknowledgeRow,
-      actions)
-      return portal(h('div', {
-        className: 'dsh-aa-backdrop',
-        onMouseDown: (event) => {
-          if (event.target === event.currentTarget) onCancel()
-        },
-      }, dialog))
-    }
-
-    function rowItems(options, currentValue, t, withDetail) {
+    /**
+     * Composer menu rows: the shipped icon column plus the localized EXP badge.
+     * The menu itself supplies the selected row's trailing check.
+     */
+    function pickerItems(options, t) {
       return options.map((option) => {
-        const isAuto = option.value === AUTO
+        const icon = permissionGlyph(option.value)
+        const label = presetLabel(option.value, option.name, t)
+        const badge = option.value === AUTO ? t('autoBadge') : undefined
         const item = {
           id: option.value,
-          label: presetLabel(option.value, option.name, t),
-          active: option.value === currentValue,
+          label: badge === undefined
+            ? label
+            : h('span', {
+              className: 'dsh-aa-optionLabel',
+              'aria-label': `${label} ${badge}`,
+            },
+            h('span', { className: 'dsh-aa-optionLabelText' }, label),
+            h('span', { className: 'dsh-aa-badge' }, badge)),
         }
-        if (isAuto) {
-          item.badge = t('autoBadge')
-          item.detail = withDetail ? t('autoDescription') : undefined
-        } else if (withDetail && option.description !== undefined) {
-          item.detail = option.description
-        }
+        if (icon !== undefined) item.icon = icon
         return item
       })
     }
@@ -436,7 +304,14 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = React.useState(false)
       const [error, setError] = React.useState(null)
       const [confirming, setConfirming] = React.useState(false)
-      const triggerRef = React.useRef(null)
+      const [acknowledged, setAcknowledged] = React.useState(false)
+
+      React.useEffect(() => {
+        if (permission.writable && permission.status !== 'unavailable') return
+        setOpen(false)
+        setAcknowledged(false)
+        setConfirming(false)
+      }, [permission.status, permission.writable])
 
       if (permission.status === 'unavailable') return null
 
@@ -452,9 +327,9 @@ window.__ModuleLoader__.load({
         ? presetLabel(current.value, current.name, t)
         : loading
           ? t('loading')
-          : displayName(currentValue)
-      const disabled = busy || loading || !permission.writable || options.length === 0
-      const description = error ?? (catalogState.error !== null ? t('unavailable') : t('description'))
+          : t('unavailable')
+      const description = error ?? catalogState.error ?? t('description')
+      const disabled = busy || confirming || loading || !permission.writable || options.length === 0
 
       const submitDefault = async (value) => {
         setBusy(true)
@@ -480,52 +355,64 @@ window.__ModuleLoader__.load({
         setOpen(false)
         if (value === currentValue) return
         if (value === FULL_ACCESS) {
+          setAcknowledged(false)
           setConfirming(true)
           return
         }
         void submitDefault(value)
       }
 
-      const items = rowItems(options, currentValue, t, false)
+      const items = options.map((option) => ({
+        id: option.value,
+        label: presetLabel(option.value, option.name, t),
+      }))
+
       return h(React.Fragment, null,
         h('div', { className: 'dsh-aa-row' },
           h('div', { className: 'dsh-aa-rowText' },
             h('div', { className: 'dsh-aa-title' }, t('title')),
             h('div', {
               className: 'dsh-aa-desc',
-              role: error !== null ? 'alert' : undefined,
+              role: error !== null || catalogState.error !== null ? 'alert' : undefined,
             }, description)),
-          h('button', {
-            ref: triggerRef,
-            type: 'button',
-            className: 'dsh-aa-selector',
-            'aria-haspopup': 'menu',
-            'aria-expanded': open ? 'true' : 'false',
-            disabled,
-            onClick: () => {
-              setOpen((value) => !value)
+          h(Menu, {
+            open,
+            onClose: () => {
+              setOpen(false)
             },
-          }, label, h(Chevron))),
-        h(Dropdown, {
-          open,
-          anchorRef: triggerRef,
-          items,
-          onSelect: choose,
-          onClose: () => {
-            setOpen(false)
-          },
-        }),
-        h(RiskDialog, {
+            items,
+            selectedId: currentValue,
+            onSelect: choose,
+            align: 'end',
+            portal: true,
+            anchor: h('button', {
+              type: 'button',
+              className: 'dsh-aa-selector',
+              'aria-haspopup': 'menu',
+              'aria-expanded': open,
+              disabled,
+              onClick: () => {
+                setOpen((value) => !value)
+              },
+            }, label, h(IconChevronDownOutlineRegular, { className: 'dsh-aa-rowChevron' })) }),
+        ),
+        h(RiskConfirmation, {
           open: confirming,
           title: t('confirmTitle'),
-          description: t('confirmDescription'),
-          acknowledge: t('confirmAcknowledge'),
-          cancel: t('confirmCancel'),
-          confirm: t('confirmEnable'),
+          description: t('settingsConfirmDescription'),
+          acknowledgeLabel: t('confirmAcknowledge'),
+          cancelLabel: t('confirmCancel'),
+          closeLabel: t('close'),
+          confirmLabel: t('confirmEnable'),
+          acknowledged,
+          disabled: busy || !permission.writable,
+          onAcknowledgedChange: setAcknowledged,
           onCancel: () => {
+            setAcknowledged(false)
             setConfirming(false)
           },
           onConfirm: () => {
+            setAcknowledged(false)
             setConfirming(false)
             void submitDefault(FULL_ACCESS)
           },
@@ -536,80 +423,107 @@ window.__ModuleLoader__.load({
     function PermissionPicker({ t, locked, select, catalogStore, useProjection }) {
       const selection = useProjection('permissions')
       const catalogState = useStore(catalogStore)
+      const [pick, setPick] = React.useState(null)
       const [open, setOpen] = React.useState(false)
-      const [busy, setBusy] = React.useState(false)
-      const [confirming, setConfirming] = React.useState(false)
-      const triggerRef = React.useRef(null)
+      const [confirmation, setConfirmation] = React.useState(null)
+      const [acknowledged, setAcknowledged] = React.useState(false)
 
       React.useEffect(() => {
-        if (!locked) return
+        const catalog = catalogState.value
+        if (!locked && selection !== undefined && catalog !== null
+          && (confirmation === null || catalog.options.some((option) => option.value === confirmation))) return
         setOpen(false)
-        setConfirming(false)
-      }, [locked])
+        setAcknowledged(false)
+        setConfirmation(null)
+      }, [catalogState.value, confirmation, locked, selection])
 
       if (selection === undefined || catalogState.value === null) return null
 
       const catalog = catalogState.value
-      const currentValue = selection.currentValue
+      const currentValue = pick !== null && catalog.options.some((option) => option.value === pick)
+        ? pick
+        : selection.currentValue
       const current = catalog.options.find((option) => option.value === currentValue)
-      const label = current !== undefined ? presetLabel(current.value, current.name, t) : displayName(currentValue)
-      const busyNow = busy || confirming
+      const currentLabel = current === undefined
+        ? presetLabel(currentValue, currentValue, t)
+        : presetLabel(current.value, current.name, t)
+      const busy = pick !== null || confirmation !== null
 
-      const runSelect = async (value) => {
-        setBusy(true)
-        try {
-          await select(value)
-        } catch (error) {
-          console.warn('always-auto: permission switch failed', error)
-        } finally {
-          setBusy(false)
-        }
+      const submit = (value) => {
+        setPick(value)
+        void select(value)
+          .catch((error) => {
+            console.warn('always-auto: permission switch failed', error)
+            return false
+          })
+          .then(() => {
+            setPick(null)
+          })
       }
 
       const choose = (value) => {
         setOpen(false)
-        if (value === currentValue) return
+        if (value === selection.currentValue) return
         if (value === FULL_ACCESS) {
-          setConfirming(true)
+          setAcknowledged(false)
+          setConfirmation(value)
           return
         }
-        void runSelect(value)
+        submit(value)
       }
 
-      const items = rowItems(catalog.options, currentValue, t, true)
+      const closeConfirmation = () => {
+        setAcknowledged(false)
+        setConfirmation(null)
+      }
+
       return h(React.Fragment, null,
-        h('button', {
-          ref: triggerRef,
-          type: 'button',
-          className: 'dsh-aa-trigger',
-          'aria-label': t('mode', { name: label }),
-          disabled: locked || busyNow,
-          onClick: () => {
-            setOpen((value) => !value)
-          },
-        }, h('span', { className: 'dsh-aa-triggerLabel' }, label), h(Chevron)),
-        h(Dropdown, {
+        h(Menu, {
           open,
-          anchorRef: triggerRef,
-          items,
+          items: pickerItems(catalog.options, t),
+          selectedId: currentValue,
           onSelect: choose,
           onClose: () => {
             setOpen(false)
           },
+          side: 'top',
+          portal: true,
+          anchor: h('button', {
+            type: 'button',
+            className: 'dsh-aa-trigger',
+            'aria-label': t('mode', { name: currentLabel }),
+            title: current === undefined ? undefined : optionDescription(current, t),
+            disabled: locked || busy,
+            onClick: () => {
+              setOpen(!open)
+            },
+          },
+          permissionGlyph(currentValue) !== undefined && h('span', {
+            className: 'dsh-aa-triggerIcon',
+            'aria-hidden': true,
+          }, permissionGlyph(currentValue)),
+          h('span', { className: 'dsh-aa-triggerLabel' }, currentLabel),
+          h('span', {
+            className: cx('dsh-aa-triggerChevron', open && 'dsh-aa-triggerChevronOpen'),
+            'aria-hidden': true,
+          }, h(IconChevronDownOutlineRegular))),
         }),
-        h(RiskDialog, {
-          open: confirming,
+        h(RiskConfirmation, {
+          open: confirmation !== null,
           title: t('confirmTitle'),
           description: t('confirmDescription'),
-          acknowledge: t('confirmAcknowledge'),
-          cancel: t('confirmCancel'),
-          confirm: t('confirmEnable'),
-          onCancel: () => {
-            setConfirming(false)
-          },
+          acknowledgeLabel: t('confirmAcknowledge'),
+          cancelLabel: t('confirmCancel'),
+          closeLabel: t('close'),
+          confirmLabel: t('confirmEnable'),
+          acknowledged,
+          disabled: locked,
+          onAcknowledgedChange: setAcknowledged,
+          onCancel: closeConfirmation,
           onConfirm: () => {
-            setConfirming(false)
-            void runSelect(FULL_ACCESS)
+            const value = confirmation
+            closeConfirmation()
+            if (value !== null) submit(value)
           },
         }))
     }
