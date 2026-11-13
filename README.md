@@ -72,7 +72,7 @@ plugin_manager install_bundle target=/absolute/path/to/dsh-always-auto
   - `commandUi.decorate('permission')` 接管 `/permission` 弹窗的选项。
 - 设置页的权限行使用原生 `Menu` 与 `RiskConfirmation`；输入框选择器使用原生 `Menu`、权限图标和方向箭头，菜单向上展开并挂载到 `document.body`，与原生行为一致。
 - 自动审查选项在弹窗中不带 `confirmation`；完全权限仍带原生风险确认。
-- 样式只使用 `--dsw-*` 主题 token，不依赖任何 Harness Client 包。
+- 样式只使用 `--dsw-*` 主题 token；界面组件依赖 Harness 自带的 `@deepseek-ai/dsh-client-ui-primitives`，不引入额外的 npm 依赖。
 
 ## 注意
 
