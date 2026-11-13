@@ -2,6 +2,30 @@
 
 把 **自动审查（Auto review）** 变成新会话的默认权限，并移除启用它时的实验性风险确认弹窗。
 
+## 安装
+
+在 DeepSeek Harness 的「插件」页点击「添加插件」，填入：
+
+```text
+github:chofuhoyu/dsh-always-auto
+```
+
+也可以直接用 CLI 安装到 `web` profile：
+
+```sh
+dsh plugin --profile web add github:chofuhoyu/dsh-always-auto
+```
+
+安装后刷新 Web 页面。插件会：
+
+1. 禁用原生的 `ui-permission` 客户端入口；
+2. 插入 `always-auto` 插件入口（Host 半 + Client 半）；
+3. 由 Client 半接管设置、输入框和 `/permission` 三处权限界面。
+
+依赖 `@deepseek-ai/dsh-experimental-auto-review` bundle 必须已经安装；否则权限目录里不会出现「自动审查」，本插件也会自动退回到普通默认权限。
+
+本地开发时可以把 `github:chofuhoyu/dsh-always-auto` 换成仓库目录的绝对路径。
+
 ## 它解决什么
 
 DeepSeek Harness 原生的权限界面在选中「自动审查」时会弹出：
@@ -29,26 +53,6 @@ DeepSeek Harness 原生的权限界面在选中「自动审查」时会弹出：
 - 行布局、选择器胶囊、输入框触发器与 EXP 角标的样式，逐条照搬原生 `PermissionRow.module.css` 和 `PermissionSelect.module.css` 的声明与主题 token。
 
 因此设置页的权限行、输入框权限选择器在颜色、字体、间距、图标和下拉菜单外观上都与原生控件一致。
-
-## 安装
-
-```sh
-dsh plugin --profile web add /absolute/path/to/dsh-always-auto
-```
-
-或者把本目录作为本地 bundle 安装：
-
-```text
-plugin_manager install_bundle target=/absolute/path/to/dsh-always-auto
-```
-
-安装后刷新 Web 页面。插件会：
-
-1. 禁用原生的 `ui-permission` 客户端入口；
-2. 插入 `always-auto` 插件入口（Host 半 + Client 半）；
-3. 由 Client 半接管上述三个权限界面。
-
-依赖 `@deepseek-ai/dsh-experimental-auto-review` bundle 必须已经安装；否则权限目录里不会出现「自动审查」，本插件也会自动退回到普通默认权限。
 
 ## 配置
 
