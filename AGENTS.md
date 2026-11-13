@@ -13,12 +13,12 @@
 
 ### 为什么
 
-- 市场索引生成器按标签枚举版本：版本提交没有标签，该版本就不进索引；旧版本没标签时，索引里只剩默认分支上的最新版本，旧版本会从中消失。
-- 标签若不在声明该版本的提交上，版本号就会随分支漂移到更晚的代码，索引里的版本与实际内容不一致。
+- 市场索引生成器列出打了标签的版本和默认分支上的当前版本：没有标签的旧版本会从索引里消失，索引里只剩默认分支上的最新版本。
+- 当前版本没有标签时，版本号会随默认分支前进漂移到更晚的代码，索引里的版本与实际内容不一致。
 
 ## 发布清单
 
 1. 改 `package.json` 的 `version`；
 2. 提交（`[release] Bump the package version to X`）；
-3. 打标签：`git tag -a vX -m "vX"`；
-4. 推送分支和标签：`git push origin main && git push origin vX`。
+3. 打标签：`git tag -a v<version> -m "v<version>"`；
+4. 推送分支和标签：`git push origin main && git push origin v<version>`。
