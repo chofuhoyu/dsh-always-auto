@@ -21,7 +21,6 @@
     "icon.svg",
     "scripts/*.mjs",
     "README.md",
-    "README.zh.md",
     "LICENSE"
   ],
   "dsh": {
