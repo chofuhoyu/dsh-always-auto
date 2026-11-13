@@ -1,6 +1,6 @@
 {
   "name": "dsh-always-auto",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Use Auto review as the default permission and skip its experimental-enable confirmation dialog.",
   "type": "module",
   "main": "index.js",
